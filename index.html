@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title>#deep_tag</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+
+    <script type="text/javascript">
+
+
+        $(document).ready(function () {
+
+            $("#loading").hide();
+            $("span.mdl-chip").hide();
+
+            console.log("ready!");
+
+
+            $("#predict-btn").click(function () {
+
+
+                $("span.mdl-chip").hide();
+                $("#no-genres").hide();
+                $("#great").hide();
+                $("#loading").show();
+
+                var reader = new FileReader();
+
+                reader.addEventListener("load", function (e) {
+                    console.log(e.target.result);
+                    send_image(e.target.result.split(',')[1])
+                });
+
+                reader.readAsDataURL(document.getElementById('input').files[0]);
+
+                function send_image(image_data) {
+                    $.ajax({
+                        type: "POST",
+                        url: "https://europe-west1-piwi-project.cloudfunctions.net/ML-Hashtagger",
+
+                        data: JSON.stringify({
+                            "image": image_data
+                        }),
+
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        success: function (data) {
+
+                            console.log(data)
+
+                                generate_deeptags(data)
+
+
+
+
+                        },
+                        beforeSend: function () {
+                            $("#no-genres").hide();
+                            $("#great").hide();
+                            $("#error").hide();
+                        },
+                        failure: function (errMsg) {
+                            alert(errMsg);
+                        },
+                        error: function () {
+                            $("#error").show();
+                        },
+                        complete: function (data) {
+                            $("#loading").hide();
+                        }
+
+                    });
+                }
+
+            });
+
+        });
+
+        const generate_deeptags = (data) => {
+          const tag_one = generate_deeptag(data.labels[0])
+          const tag_two = generate_deeptag(data.labels[1])
+          const tag_three = generate_deeptag(data.labels[2])
+          const tag_string = `#${tag_one} #${tag_two} #${tag_three}`
+
+          $("#no-genres").show();
+          $("#found-object").text(tag_string);
+        }
+
+        const generate_deeptag = (tag) => {
+          if(tag === undefined) {
+            return "instagood"
+          }
+          const tag_length = tag.split(" ").length
+          if (tag_length === 1) {
+            tag = extend_tag(tag)
+          }
+          const cleaned_tag = tag.toLowerCase().replace(/ /g,"_")
+          return cleaned_tag
+        }
+
+        const extend_tag = (tag) => {
+          const tag_cliches = [`${tag}s_of_instagram`,
+            `${tag}_life`,
+            `ig_${tag}`,
+            `${tag}_2019`,
+            `big_${tag}_energy`,
+            `${tag}_mood`,
+            `${tag}_of_the_day`,
+            `${tag}_daily`,
+            `${tag}_art`,
+            `${tag}_aesthetic`,
+            `${tag}_photography`,
+            `${tag}stagram`,
+            `${tag}_lovers`,
+            `${tag}_vibes`,
+            `${tag}_blogger`,
+            `love_my_${tag}`,
+            `feel_good_${tag}`,
+            `${tag}_af`
+          ]
+          return tag_cliches[Math.floor(Math.random() * tag_cliches.length)]
+        }
+
+    </script>
+
+    <style>
+        .mdl-components__warning {
+            display: inline-block;
+            background-color: #FFF9C4;
+            padding: 16px;
+            border-radius: 2px;
+            color: #212121;
+        }
+
+        .mdl-components__great {
+            display: inline-block;
+            background-color: #00ff4145;;
+            padding: 16px;
+            border-radius: 2px;
+            color: #212121;
+        }
+
+        .mdl-components__error {
+            display: inline-block;
+            background-color: #ffe4e4;
+            padding: 16px;
+            border-radius: 2px;
+            color: #212121;
+        }
+
+        .mdl-chip__contact {
+            font-size: 15px;
+        }
+
+        .mdl-textfield {
+            width: 400px;
+        }
+    </style>
+
+
+</head>
+
+<body>
+
+    <!-- Always shows a header, even in smaller screens. -->
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+        <header class="mdl-layout__header">
+
+            <div class="mdl-layout-icon">
+              <img src="instagram.svg">
+            </div>
+
+            <div class="mdl-layout__header-row">
+                <!-- Title -->
+
+
+                <span class="mdl-layout-title">#deep_tag</span>
+
+            </div>
+        </header>
+        <main class="mdl-layout__content">
+            <div class="page-content">
+                <!-- Your content goes here -->
+
+                <div class="mdl-grid">
+
+
+                    <input id="input" type="file" accept="image/*" onchange="loadFile(event)">
+                    <img id="output" style="height: 300px" />
+                    <script>
+                        var loadFile = function (event) {
+                            var output = document.getElementById('output');
+                            output.src = URL.createObjectURL(event.target.files[0]);
+                        };
+                    </script>
+
+
+                    <div class="mdl-cell mdl-cell--12-col">
+                        <button id="predict-btn" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Check Image</button>
+                    </div>
+
+                    <div class="mdl-cell mdl-cell--12-col">
+                        <div id="loading" class="mdl-spinner mdl-spinner--single-color mdl-js-spinner is-active"></div>
+
+                        <div id="genres">
+
+
+
+                            <div id="no-genres" class="mdl-components__warning" style="display:none">
+                                 <span id="found-object"></span>
+                            </div>
+
+                            <div id="error" class="mdl-components__error" style="display:none">
+                                Sorry, something went wrong, does your custom model exist? 🤨
+                            </div>
+                        </div>
+
+
+                    </div>
+        </main>
+    </div>
+
+
+</body>
+
+</html>
